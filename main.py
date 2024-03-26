@@ -1,7 +1,9 @@
 import pygame
 from pygame.locals import *
 from car import CarController
+from ray import Ray
 import math
+from shapely.geometry import Polygon
 
 # Initialisation de Pygame
 pygame.init()
@@ -67,6 +69,20 @@ while running:
     end_x = car.x + line_length * math.sin(math.radians(car.angle + 90))
     end_y = car.y - line_length * math.cos(math.radians(car.angle + 90))
     pygame.draw.line(screen, (0,0,0), (car.x, car.y), (end_x, end_y), 2)
+
+    # rays
+    r1 = Ray(car.x,car.y,45 + 90,100)
+    r1.contact(-car.angle,Polygon(points1))
+    r1.draw(screen)
+
+    r1 = Ray(car.x,car.y,-45 + 90,100)
+    r1.contact(-car.angle,Polygon(points1))
+    r1.draw(screen)
+
+    r1 = Ray(car.x,car.y,0 + 90,100)
+    r1.contact(-car.angle,Polygon(points1))
+    r1.draw(screen)
+
 
     # debug
     position_text = font.render(f"Position: ({car.x:.2f}, {car.y:.2f})", True, (0,0,0))

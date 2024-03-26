@@ -101,18 +101,18 @@ class CarController:
         return True
     
     def draw(self,screen):
-        pygame.draw.polygon(screen,(0,0,0),to_Polygon(self.x,self.y,self.width,self.height,-self.angle))
+        pygame.draw.polygon(screen,(0,0,0),car_to_Polygon(self.x,self.y,self.width,self.height,-self.angle))
 
     def hasCrash(self, points1,points2):
         p1 = Polygon(points1)
         p2 = Polygon(points2)
 
-        car = Polygon(to_Polygon(self.x,self.y,self.width,self.height,-self.angle))
+        car = Polygon(car_to_Polygon(self.x,self.y,self.width,self.height,-self.angle))
 
         return not(car.intersects(p1) and not car.intersects(p2))
 
 
-def to_Polygon(x, y, width, height, rotation):
+def car_to_Polygon(x, y, width, height, rotation):
     points = []
 
     # The distance from the center of the rectangle to

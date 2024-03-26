@@ -1,6 +1,7 @@
 import pygame
 from pygame.locals import *
 import math
+from shapely.geometry import Polygon
 
 
 class CarController:
@@ -14,8 +15,8 @@ class CarController:
         self.image = pygame.transform.scale(self.image, (self.width, self.height))
         
         # Setting
-        self.x = 200
-        self.y = 200
+        self.x = 168
+        self.y = 100
         self.speed = 0
         self.acceleration = 0.115
         self.break_speed = .1
@@ -23,10 +24,13 @@ class CarController:
         self.steer_angle = 4
         self.angle = 0
         self.frottement = 0.04
+        self.mass = 20
 
         # track
         self.nb_checkpoints = 0
         self.nb_laps = 0
+
+    
     
     def update(self):
         delta_time = pygame.time.Clock().tick(60) / 1000.0  # Temps écoulé en secondes
@@ -64,9 +68,10 @@ class CarController:
             if keys[pygame.K_d]:
                 self.angle += self.steer_angle*flip
 
-                    
-        self.x += math.cos(math.radians(self.angle))*self.speed
-        self.y += math.sin(math.radians(self.angle))*self.speed
+
+        self.x += math.cos(math.radians(self.angle)) * (self.speed )
+        self.y += math.sin(math.radians(self.angle)) * (self.speed )
+
 
     def isbetween(self, x1,y1, x2,y2,epsilon,indice,indice_max):
 
@@ -95,15 +100,40 @@ class CarController:
 
         return True
     
-    def draw(self, screen):
-        rotated_image = pygame.transform.rotate(self.image, -self.angle)
-        new_rect = rotated_image.get_rect(center=self.rect.center)
-        new_rect.x = self.x - new_rect.width / 2
-        new_rect.y = self.y - new_rect.height / 2
-        screen.blit(rotated_image, new_rect.topleft)
+    def draw(self,screen):
+        pygame.draw.polygon(screen,(0,0,0),to_Polygon(self.x,self.y,self.width,self.height,-self.angle))
+
+    def hasCrash(self, points1,points2):
+        p1 = Polygon(points1)
+        p2 = Polygon(points2)
+
+        car = Polygon(to_Polygon(self.x,self.y,self.width,self.height,-self.angle))
+
+        return not(car.intersects(p1) and not car.intersects(p2))
 
 
+def to_Polygon(x, y, width, height, rotation):
+    points = []
 
+    # The distance from the center of the rectangle to
+    # one of the corners is the same for each corner.
+    radius = math.sqrt((height / 2)**2 + (width / 2)**2)
 
-        
+    # Get the angle to one of the corners with respect
+    # to the x-axis.
+    angle = math.atan2(height / 2, width / 2)
+
+    # Transform that angle to reach each corner of the rectangle.
+    angles = [angle, -angle + math.pi, angle + math.pi, -angle]
+
+    # Convert rotation from degrees to radians.
+    rot_radians = (math.pi / 180) * rotation
+
+    # Calculate the coordinates of each point.
+    for angle in angles:
+        y_offset = -1 * radius * math.sin(angle + rot_radians)
+        x_offset = radius * math.cos(angle + rot_radians)
+        points.append((x + x_offset, y + y_offset))
+
+    return points
 

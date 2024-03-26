@@ -63,7 +63,7 @@ while running:
     car.draw(screen)
 
     # ligne angle
-    line_length = 200
+    line_length = car.speed * 10 + 20
     end_x = car.x + line_length * math.sin(math.radians(car.angle + 90))
     end_y = car.y - line_length * math.cos(math.radians(car.angle + 90))
     pygame.draw.line(screen, (0,0,0), (car.x, car.y), (end_x, end_y), 2)
@@ -79,6 +79,9 @@ while running:
 
     screen.blit(check, (400, 10))
     screen.blit(laps, (400, 40))
+
+    inter = font.render(f"inter : {car.hasCrash(points1,points2):.2f}", True, (0,0,0))
+    screen.blit(inter, (700, 10))
 
 
     # Dessiner les checkpoints

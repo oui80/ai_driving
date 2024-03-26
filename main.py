@@ -4,6 +4,7 @@ from car import CarController
 from ray import Ray
 import math
 from shapely.geometry import Polygon
+from shapely import speedups
 
 # Initialisation de Pygame
 pygame.init()
@@ -22,6 +23,8 @@ RED = (255, 0, 0)
 BLUE = (0,0,255)
 VERT = (0,255,0)
 
+debug = False
+
 # Création de la voiture
 car = CarController((screen_width // 2, screen_height // 2), "car.png")
 
@@ -34,6 +37,14 @@ points1 = [(163, 73), (183, 72), (423, 59), (449, 59), (478, 64), (503, 74), (52
 points2 = [(173, 136), (189, 134), (423, 121), (444, 122), (461, 128), (474, 133), (480, 141), (485, 149), (488, 160), (492, 170), (491, 183), (504, 209), (524, 234), (580, 251), (617, 242), (646, 211), (654, 198), (686, 143), (695, 132), (703, 127), (711, 125), (717, 125), (722, 125), (729, 126), (736, 129), (740, 132), (748, 142), (752, 151), (752, 163), (752, 169), (749, 174), (742, 183), (736, 194), (721, 216), (700, 242), (676, 265), (653, 284), (629, 304), (588, 335), (565, 365), (554, 397), (549, 424), (551, 515), (550, 535), (553, 557), (563, 596), (594, 680), (600, 701), (604, 720), (604, 728), (600, 742), (595, 749), (586, 755), (580, 758), (568, 760), (553, 762), (530, 760), (508, 752), (491, 743), (478, 732), (463, 715), (282, 501), (277, 490), (275, 481), (275, 472), (277, 460), (285, 453), (287, 452), (290, 452), (297, 449), (444, 412), (458, 408), (474, 401), (496, 382), (511, 349), (511, 325), (504, 298), (489, 271), (456, 251), (425, 244), (182, 237), (167, 234), (150, 228), (141, 220), (136, 215), (132, 208), (129, 201), (128, 185), (129, 170), (133, 160), (141, 148), (146, 145), (155, 137), (173, 136)]
 active_points = points1 
 add = False
+outer = Polygon(points1)
+inner = Polygon(points2)
+
+
+# Rays
+rays = [Ray(car.x, car.y, angle + 90, 100) for angle in [-45, 0, 45, 30, -30, 30, -30, 60, -60, 15, -15]]
+
+speedups.enable()
 
 # Boucle de jeu
 running = True
@@ -64,24 +75,12 @@ while running:
     # Affichage de la voiture
     car.draw(screen)
 
-    # ligne angle
-    line_length = car.speed * 10 + 20
-    end_x = car.x + line_length * math.sin(math.radians(car.angle + 90))
-    end_y = car.y - line_length * math.cos(math.radians(car.angle + 90))
-    pygame.draw.line(screen, (0,0,0), (car.x, car.y), (end_x, end_y), 2)
-
+    
     # rays
-    r1 = Ray(car.x,car.y,45 + 90,100)
-    r1.contact(-car.angle,Polygon(points1))
-    r1.draw(screen)
-
-    r1 = Ray(car.x,car.y,-45 + 90,100)
-    r1.contact(-car.angle,Polygon(points1))
-    r1.draw(screen)
-
-    r1 = Ray(car.x,car.y,0 + 90,100)
-    r1.contact(-car.angle,Polygon(points1))
-    r1.draw(screen)
+    for ray in rays:
+        ray.reset_position(car.x,car.y)
+        ray.contact(-car.angle,outer,inner)
+        ray.draw(screen)
 
 
     # debug
@@ -93,38 +92,40 @@ while running:
     screen.blit(position_text, (10, 10))
     screen.blit(velocity_text, (10, 40))
 
-    screen.blit(check, (400, 10))
-    screen.blit(laps, (400, 40))
+    screen.blit(check, (200, 10))
+    screen.blit(laps, (200, 40))
 
-    inter = font.render(f"inter : {car.hasCrash(points1,points2):.2f}", True, (0,0,0))
-    screen.blit(inter, (700, 10))
+    fps_text = font.render(f"FPS: {int(clock.get_fps())}", True, BLACK)
+    screen.blit(fps_text, (800, 10))
 
 
     # Dessiner les checkpoints
-    for point in points1:
-        pygame.draw.circle(screen, RED, point, 2)
 
-    for point in points2:
-        pygame.draw.circle(screen, RED, point, 2)
+    if (debug):
+        for point in points1:
+            pygame.draw.circle(screen, RED, point, 2)
+
+        for point in points2:
+            pygame.draw.circle(screen, RED, point, 2)
 
 
-    for i in range(len(points1)-1):
-        pygame.draw.line(screen, BLUE, points1[i], points1[i+1], 1)
+        for i in range(len(points1)-1):
+            pygame.draw.line(screen, BLUE, points1[i], points1[i+1], 1)
 
-    for i in range(len(points2)-1):
-        pygame.draw.line(screen, BLUE, points2[i], points2[i+1], 1)
+        for i in range(len(points2)-1):
+            pygame.draw.line(screen, BLUE, points2[i], points2[i+1], 1)
 
-    for i in range(len(points2)-1):
-        
-        if(car.isbetween(points1[i][0],points1[i][1],points2[i][0],points2[i][1],100,i,92)):
-            indice = font.render(f"indice : {i:.2f}", True, (0,0,0))
-            screen.blit(indice, (400, 70))
-            pygame.draw.line(screen, VERT, points2[i], points1[i], 1)
+        for i in range(len(points2)-1):
+            
+            if(car.isbetween(points1[i][0],points1[i][1],points2[i][0],points2[i][1],100,i,92)):
+                indice = font.render(f"indice : {i:.2f}", True, (0,0,0))
+                screen.blit(indice, (400, 70))
+                pygame.draw.line(screen, VERT, points2[i], points1[i], 1)
  
 
 
     pygame.display.flip()
-    clock.tick(60)  # Limite de 60 images par seconde
+    clock.tick(160)  # Limite de 60 images par seconde
 
 print(len(points1))
 

@@ -25,7 +25,7 @@ VERT = (0,255,0)
 
 debug = False
 
-# Création de la voiture
+# Création de la voiture 
 car = CarController((screen_width // 2, screen_height // 2), "car.png")
 
 # Track

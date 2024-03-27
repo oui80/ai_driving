@@ -79,7 +79,7 @@ while running:
     # rays
     for ray in rays:
         ray.reset_position(car.x,car.y)
-        ray.contact(-car.angle,outer,inner)
+        ray.contact((car.x,car.y),-car.angle,outer,inner)
         ray.draw(screen)
 
 

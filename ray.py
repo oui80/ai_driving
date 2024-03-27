@@ -27,9 +27,11 @@ class Ray:
             segment = LineString([(self.x1,self.y1),(self.x2,self.y2)])
             intersection_point = segment.intersection(polygon)
             if(not intersection_point.is_empty):
-                self.distance = Point(self.x1, self.y1).distance(intersection_point)
-                x2,y2 = intersection_point.xy
-                self.x2, self.y2 = int(x2[1]), int(y2[1])   
+                if intersection_point.geom_type == 'LineString':
+                    if len(intersection_point.xy[0]) >= 2 :
+                        self.distance = Point(self.x1, self.y1).distance(intersection_point)
+                        x2,y2 = intersection_point.xy
+                        self.x2, self.y2 = int(x2[1]), int(y2[1])   
 
 
     def draw(self,screen):

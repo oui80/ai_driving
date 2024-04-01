@@ -40,7 +40,7 @@ class CarController:
         self.rays = [Ray(self.x, self.y, angle + 90, 100) for angle in [-45, 0, 45, 30, -30, 60, -60, 15, -15]]
         
         # Brain
-        self.brain = NeuralNetwork([self.nb_ray, 6, 4])
+        self.brain = NeuralNetwork([self.nb_ray, self.nb_ray*2, 4])
     
     def reset(self):
         self.x = 168
@@ -158,6 +158,10 @@ class CarController:
         pygame.draw.polygon(screen,color,car_to_Polygon(self.x,self.y,self.width,self.height,-self.angle))
         # for ray in self.rays:
         #     ray.draw(screen)
+    
+    def draw_rays(self,screen):
+        for ray in self.rays:
+            ray.draw(screen)
 
     def hasCrash(self, points1,points2):
         p1 = Polygon(points1)

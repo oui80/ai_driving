@@ -1,5 +1,8 @@
 import random
 
+def lerp(start, end, factor):
+    return start * (1 - factor) + end * factor
+
 class NeuralNetwork:
     def __init__(self,neuronCounts):
         self.levels = []
@@ -17,6 +20,24 @@ class NeuralNetwork:
             outputs = Level.feed_forward(outputs,network.levels[i])
         
         return outputs
+    
+    
+    
+    def mutate(network,amount):
+        for level in network.levels:        
+            for i in range(len(level.biases)):
+                level.biases[i] = lerp(
+                    level.biases[i],
+                    random.uniform(-1, 1),
+                    amount
+                )
+            for i in range(len(level.inputs)):  
+                    for j in range(len(level.outputs)):
+                        level.weights[i][j] = lerp(
+                            level.weights[i][j],
+                            random.uniform(-1, 1),
+                            amount
+                        )
 
 class Level:
     def __init__(self,inputCount,outputCount):

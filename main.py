@@ -1,9 +1,10 @@
+from level import NeuralNetwork
 import pygame
 from pygame.locals import *
 from car import CarController
 from shapely.geometry import Polygon
 from shapely import speedups
-import json
+import pickle
 
 # Initialisation de Pygame
 pygame.init()
@@ -22,11 +23,11 @@ RED = (255, 0, 0)
 BLUE = (0,0,255)
 VERT = (0,255,0)
 
-debug = True
+debug = False
 
 # Création de la voiture 
 
-cars = [None]*10
+cars = []
 
 global bestcar
 
@@ -48,35 +49,22 @@ inner = Polygon(points2)
 # CRUD
 
 def save():
-    # Save the best car brain and attributs in the local storage in a JSON format
-
-    brain = json.dumps(bestcar.brain, default=lambda o: o.__dict__)
-    with open("bestcar.txt", "w") as f:
-        f.write(brain)
-
+    # Save the best car with pickle
+    with open("bestcar.txt", "wb") as f:
+        pickle.dump(bestcar.brain, f)
 
 
 def load():
     # Load the best car brain from the local storage
-    with open("bestcar.txt", "r") as f:
-        data = f.read()
-        if data != "":
-            bestcar.brain = json.loads(data)
+    with open("bestcar.txt", "rb") as f:
+        res = pickle.load(f)
         f.close()
-
-
-def supp():
-    # Delete the best car brain from the local storage
-    with open("bestcar.txt", "w") as f:
-        f.write("")
-        f.close()
+        return res
         
 def generate_cars(n):
     
     for i in range(n):
-        cars[i] = CarController("AI",(screen_width // 2, screen_height // 2), "car.png")
-    load()
-    bestcar.reset()
+        cars.append(CarController("AI",(screen_width // 2, screen_height // 2), "car.png"))
     return True
 
 
@@ -84,9 +72,10 @@ def generate_cars(n):
 
 
 # Boucle de jeu
-bestcar = CarController("AI",(screen_width // 2, screen_height // 2), "car.png")
-save()
+
 generate_cars(10)
+bestcar = cars[0]
+save()
 
 speedups.enable()
 
@@ -111,8 +100,15 @@ while running:
                 else:
                     active_points = points1
             elif event.key == pygame.K_n:
+                bestcar.brain = load()
+                bestcar.reset()
+                for car in cars:
+                    # copie le cerveau du meilleur mais sans aliasing
+                    car.brain = load()
+                    NeuralNetwork.mutate(car.brain,0.1)
+                    car.reset()
+            elif event.key == pygame.K_b:
                 save()
-                generate_cars(10)
 
 
     # Mise à jour des voitures
@@ -135,6 +131,7 @@ while running:
 
     # debug
     bestcar.draw(screen,BLUE)
+    bestcar.draw_rays(screen)
 
 
     position_text = font.render(f"Position: ({bestcar.x:.2f}, {bestcar.y:.2f})", True, (0,0,0))

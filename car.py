@@ -2,11 +2,15 @@ import pygame
 from pygame.locals import *
 import math
 from shapely.geometry import Polygon
+from level import NeuralNetwork
 from ray import Ray
 
 
 class CarController:
-    def __init__(self, position, image_path):
+    def __init__(self,type, position, image_path):
+
+        # type
+        self.type = type=="AI"
 
         # IMAGE
         self.width = 16
@@ -33,20 +37,60 @@ class CarController:
 
         # Rays
         self.nb_ray = 9
-        self.rays = rays = [Ray(self.x, self.y, angle + 90, 100) for angle in [-45, 0, 45, 30, -30, 60, -60, 15, -15]]
+        self.rays = [Ray(self.x, self.y, angle + 90, 100) for angle in [-45, 0, 45, 30, -30, 60, -60, 15, -15]]
+        
+        # Brain
+        self.brain = NeuralNetwork([self.nb_ray, 6, 4])
 
     def stop(self):
         self.speed = 0
     
     def update(self,outer,inner):
-        delta_time = pygame.time.Clock().tick(60) / 1000.0  # Temps écoulé en secondes
+        
+        # rays
+        for ray in self.rays:
+            ray.reset_position(self.x,self.y)
+            ray.contact(-self.angle,outer,inner)
 
+        offsets = []
+        for ray in self.rays:
+            offsets.append(ray.distance)
+
+        outputs = self.brain.feed_forward(offsets,self.brain)
+        print(outputs)
+        
+
+        # get the controls
         keys = pygame.key.get_pressed()
 
-        if keys[pygame.K_z]:
+        controls = [0,0,0,0]
+
+        if (self.type):
+            controls = outputs
+        else:
+            if keys[pygame.K_UP] or  keys[pygame.K_z]:
+                controls[0] = 1
+
+            if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+                controls[1] = 1
+            
+            if keys[pygame.K_LEFT] or keys[pygame.K_q]:
+                controls[2] = 1
+            
+            if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+                controls[3] = 1
+        
+        
+        # move the car
+        self.move(controls)
+
+        
+
+    def move(self,controls):
+        if controls[0] == 1:
             self.speed += self.acceleration
                     
-        if keys[pygame.K_s]:
+        if controls[1] == 1:
             self.speed -= self.break_speed
 
         if(self.speed > self.max_speed):
@@ -68,22 +112,16 @@ class CarController:
                 flip = 1
             else:
                 flip = -1
-            if keys[pygame.K_q]:
+            if controls[2] == 1:
                 self.angle -= self.steer_angle*flip
             
-            if keys[pygame.K_d]:
+            if controls[3] == 1:
                 self.angle += self.steer_angle*flip
 
 
         self.x += math.cos(math.radians(self.angle)) * (self.speed )
         self.y += math.sin(math.radians(self.angle)) * (self.speed )
-
-
-        # rays ------------------------------------------------
-        for ray in self.rays:
-            ray.reset_position(self.x,self.y)
-            ray.contact(-self.angle,outer,inner)
-
+        
 
     def isbetween(self, x1,y1, x2,y2,epsilon,indice,indice_max):
 

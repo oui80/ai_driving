@@ -9,7 +9,7 @@ class Ray:
         self.y1 = y1
         self.x2 = 0
         self.y2 = 0
-        self.distance = None
+        self.distance = 1
         self.angle = angle
         self.distance_max = distance_max
 
@@ -33,9 +33,10 @@ class Ray:
                 if(not intersection_point.is_empty):
                     if intersection_point.geom_type == 'LineString':
                         if len(intersection_point.xy[0]) >= 2 :
-                            self.distance = Point(self.x1, self.y1).distance(intersection_point)
+                            
                             x2,y2 = intersection_point.xy
                             self.x2, self.y2 = int(x2[1]), int(y2[1])
+                            self.distance = Point(self.x1, self.y1).distance(Point(self.x2, self.y2))/self.distance_max
 
 
     def draw(self,screen):

@@ -17,7 +17,7 @@ class Ray:
         self.x1 = x
         self.y1 = y
 
-    def contact(self, car_position,car_angle, polygon1,polygon2):
+    def contact(self, car_angle, polygon1,polygon2):
         self.x2 = self.x1 + self.distance_max * math.sin(math.radians(car_angle + self.angle))
         self.y2 = self.y1 + self.distance_max * math.cos(math.radians(car_angle + self.angle))
 

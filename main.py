@@ -40,10 +40,6 @@ add = False
 outer = Polygon(points1)
 inner = Polygon(points2)
 
-
-# Rays
-rays = [Ray(car.x, car.y, angle + 90, 100) for angle in [-45, 0, 45, 30, -30, 30, -30, 60, -60, 15, -15]]
-
 speedups.enable()
 
 # Boucle de jeu
@@ -70,17 +66,12 @@ while running:
 
 
     # Mise à jour de la voiture
-    car.update()
+    car.update(outer,inner)
+    if car.hasCrash(points1,points2):
+        car.stop()
 
     # Affichage de la voiture
     car.draw(screen)
-
-    
-    # rays
-    for ray in rays:
-        ray.reset_position(car.x,car.y)
-        ray.contact((car.x,car.y),-car.angle,outer,inner)
-        ray.draw(screen)
 
 
     # debug

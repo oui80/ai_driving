@@ -2,6 +2,7 @@ import pygame
 from pygame.locals import *
 import math
 from shapely.geometry import Polygon
+from ray import Ray
 
 
 class CarController:
@@ -18,10 +19,10 @@ class CarController:
         self.x = 168
         self.y = 100
         self.speed = 0
-        self.acceleration = 0.115
-        self.break_speed = .1
-        self.max_speed = 4
-        self.steer_angle = 4
+        self.acceleration = 0.3
+        self.break_speed = .4
+        self.max_speed = 12
+        self.steer_angle = 6
         self.angle = 0
         self.frottement = 0.04
         self.mass = 20
@@ -30,9 +31,14 @@ class CarController:
         self.nb_checkpoints = 0
         self.nb_laps = 0
 
+        # Rays
+        self.nb_ray = 9
+        self.rays = rays = [Ray(self.x, self.y, angle + 90, 100) for angle in [-45, 0, 45, 30, -30, 60, -60, 15, -15]]
+
+    def stop(self):
+        self.speed = 0
     
-    
-    def update(self):
+    def update(self,outer,inner):
         delta_time = pygame.time.Clock().tick(60) / 1000.0  # Temps écoulé en secondes
 
         keys = pygame.key.get_pressed()
@@ -73,6 +79,12 @@ class CarController:
         self.y += math.sin(math.radians(self.angle)) * (self.speed )
 
 
+        # rays ------------------------------------------------
+        for ray in self.rays:
+            ray.reset_position(self.x,self.y)
+            ray.contact(-self.angle,outer,inner)
+
+
     def isbetween(self, x1,y1, x2,y2,epsilon,indice,indice_max):
 
         crossproduct = (self.y - y1) * (x2 - x1) - (self.x - x1) * (y2 - y1)
@@ -102,6 +114,8 @@ class CarController:
     
     def draw(self,screen):
         pygame.draw.polygon(screen,(0,0,0),car_to_Polygon(self.x,self.y,self.width,self.height,-self.angle))
+        for ray in self.rays:
+            ray.draw(screen)
 
     def hasCrash(self, points1,points2):
         p1 = Polygon(points1)

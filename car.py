@@ -23,7 +23,7 @@ class CarController:
         self.x = 168
         self.y = 100
         self.speed = 0
-        self.acceleration = 0.3
+        self.acceleration = 0.15
         self.break_speed = .4
         self.max_speed = 12
         self.steer_angle = 6
@@ -33,7 +33,7 @@ class CarController:
 
         # track
         self.nb_checkpoints = 0
-        self.nb_laps = 0
+        self.nb_laps = 1
 
         # Rays
         self.nb_ray = 9
@@ -41,6 +41,14 @@ class CarController:
         
         # Brain
         self.brain = NeuralNetwork([self.nb_ray, 6, 4])
+    
+    def reset(self):
+        self.x = 168
+        self.y = 100
+        self.speed = 0
+        self.angle = 0
+        self.nb_checkpoints = 0
+        self.nb_laps = 1
 
     def stop(self):
         self.speed = 0
@@ -56,9 +64,7 @@ class CarController:
         for ray in self.rays:
             offsets.append(ray.distance)
 
-        outputs = self.brain.feed_forward(offsets,self.brain)
-        print(outputs)
-        
+        outputs = self.brain.feed_forward(offsets,self.brain)        
 
         # get the controls
         keys = pygame.key.get_pressed()
@@ -146,14 +152,12 @@ class CarController:
             else:
                 self.nb_checkpoints += 1
 
-
-
         return True
     
-    def draw(self,screen):
-        pygame.draw.polygon(screen,(0,0,0),car_to_Polygon(self.x,self.y,self.width,self.height,-self.angle))
-        for ray in self.rays:
-            ray.draw(screen)
+    def draw(self,screen,color):
+        pygame.draw.polygon(screen,color,car_to_Polygon(self.x,self.y,self.width,self.height,-self.angle))
+        # for ray in self.rays:
+        #     ray.draw(screen)
 
     def hasCrash(self, points1,points2):
         p1 = Polygon(points1)

@@ -23,7 +23,7 @@ class Ray:
 
         polygon = polygon1.difference(polygon2)
 
-        t = 5
+        t = 3
         interpolated_point = interpolate_segment((self.x1,self.y1),(self.x2,self.y2), t)
 
         for point in interpolated_point:

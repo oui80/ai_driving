@@ -1,10 +1,9 @@
 import pygame
 from pygame.locals import *
 from car import CarController
-from ray import Ray
-import math
 from shapely.geometry import Polygon
 from shapely import speedups
+import json
 
 # Initialisation de Pygame
 pygame.init()
@@ -23,10 +22,14 @@ RED = (255, 0, 0)
 BLUE = (0,0,255)
 VERT = (0,255,0)
 
-debug = False
+debug = True
 
 # Création de la voiture 
-car = CarController("AI",(screen_width // 2, screen_height // 2), "car.png")
+
+cars = [None]*10
+
+global bestcar
+
 
 # Track
 img = pygame.image.load("racetrack.png")
@@ -40,9 +43,53 @@ add = False
 outer = Polygon(points1)
 inner = Polygon(points2)
 
-speedups.enable()
+
+
+# CRUD
+
+def save():
+    # Save the best car brain and attributs in the local storage in a JSON format
+
+    brain = json.dumps(bestcar.brain, default=lambda o: o.__dict__)
+    with open("bestcar.txt", "w") as f:
+        f.write(brain)
+
+
+
+def load():
+    # Load the best car brain from the local storage
+    with open("bestcar.txt", "r") as f:
+        data = f.read()
+        if data != "":
+            bestcar.brain = json.loads(data)
+        f.close()
+
+
+def supp():
+    # Delete the best car brain from the local storage
+    with open("bestcar.txt", "w") as f:
+        f.write("")
+        f.close()
+        
+def generate_cars(n):
+    
+    for i in range(n):
+        cars[i] = CarController("AI",(screen_width // 2, screen_height // 2), "car.png")
+    load()
+    bestcar.reset()
+    return True
+
+
+
+
 
 # Boucle de jeu
+bestcar = CarController("AI",(screen_width // 2, screen_height // 2), "car.png")
+save()
+generate_cars(10)
+
+speedups.enable()
+
 running = True
 while running:
     screen.fill((255, 255, 255))  # Fond blanc
@@ -57,28 +104,43 @@ while running:
             if (add):
                 active_points.append((x, y))
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_RETURN:  # Si Entrée est pressée
+            if event.key == pygame.K_RETURN:
                 # Basculer entre les listes de points
                 if active_points is points1:
                     active_points = points2
                 else:
                     active_points = points1
+            elif event.key == pygame.K_n:
+                save()
+                generate_cars(10)
 
 
-    # Mise à jour de la voiture
-    car.update(outer,inner)
-    if car.hasCrash(points1,points2):
-        car.stop()
+    # Mise à jour des voitures
 
-    # Affichage de la voiture
-    car.draw(screen)
+    for car in cars:
+        car.update(outer,inner)
+        if car.hasCrash(points1,points2):
+            car.stop()
+        if(car.nb_checkpoints*car.nb_laps > bestcar.nb_checkpoints*bestcar.nb_laps):
+            bestcar = car
+        car.draw(screen,(100,100,100))
+
+        for i in range(len(points2)-1):
+            if(car.isbetween(points1[i][0],points1[i][1],points2[i][0],points2[i][1],300,i,len(points1)-2)):
+                pygame.draw.line(screen, VERT, points2[i], points1[i], 1)
+
+        
+    
 
 
     # debug
-    position_text = font.render(f"Position: ({car.x:.2f}, {car.y:.2f})", True, (0,0,0))
-    velocity_text = font.render(f"Velocity: {car.speed:.2f}", True, (0,0,0))
-    check = font.render(f"checkpoints : {car.nb_checkpoints:.2f}", True, (0,0,0))
-    laps = font.render(f"laps : {car.nb_laps:.2f}", True, (0,0,0))
+    bestcar.draw(screen,BLUE)
+
+
+    position_text = font.render(f"Position: ({bestcar.x:.2f}, {bestcar.y:.2f})", True, (0,0,0))
+    velocity_text = font.render(f"Velocity: {bestcar.speed:.2f}", True, (0,0,0))
+    check = font.render(f"checkpoints : {bestcar.nb_checkpoints:.2f}", True, (0,0,0))
+    laps = font.render(f"laps : {bestcar.nb_laps:.2f}", True, (0,0,0))
     
     screen.blit(position_text, (10, 10))
     screen.blit(velocity_text, (10, 40))
@@ -106,12 +168,7 @@ while running:
         for i in range(len(points2)-1):
             pygame.draw.line(screen, BLUE, points2[i], points2[i+1], 1)
 
-        for i in range(len(points2)-1):
-            
-            if(car.isbetween(points1[i][0],points1[i][1],points2[i][0],points2[i][1],100,i,92)):
-                indice = font.render(f"indice : {i:.2f}", True, (0,0,0))
-                screen.blit(indice, (400, 70))
-                pygame.draw.line(screen, VERT, points2[i], points1[i], 1)
+        
  
 
 
@@ -121,3 +178,4 @@ while running:
 print(len(points1))
 
 pygame.quit()
+

@@ -73,7 +73,7 @@ def generate_cars(n):
 
 # Boucle de jeu
 
-generate_cars(10)
+generate_cars(20)
 bestcar = cars[0]
 save()
 
@@ -105,7 +105,7 @@ while running:
                 for car in cars:
                     # copie le cerveau du meilleur mais sans aliasing
                     car.brain = load()
-                    NeuralNetwork.mutate(car.brain,0.1)
+                    NeuralNetwork.mutate(car.brain,0.3)
                     car.reset()
             elif event.key == pygame.K_b:
                 save()
@@ -120,8 +120,20 @@ while running:
         if(car.nb_checkpoints*car.nb_laps > bestcar.nb_checkpoints*bestcar.nb_laps):
             bestcar = car
         car.draw(screen,(100,100,100))
+        
 
-        for i in range(len(points2)-1):
+        # optimisation du parcourt des checkpoints
+        if car.nb_checkpoints > 3:
+            min = car.nb_checkpoints - 3
+        else:
+            min = 0
+
+        if car.nb_checkpoints < len(points2)-4:
+            max = car.nb_checkpoints + 3
+        else:
+            max = len(points2)-1
+
+        for i in range(min,max):
             if(car.isbetween(points1[i][0],points1[i][1],points2[i][0],points2[i][1],300,i,len(points1)-2)):
                 pygame.draw.line(screen, VERT, points2[i], points1[i], 1)
 

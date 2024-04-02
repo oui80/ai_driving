@@ -36,11 +36,11 @@ class CarController:
         self.nb_laps = 1
 
         # Rays
-        self.nb_ray = 9
-        self.rays = [Ray(self.x, self.y, angle + 90, 100) for angle in [-45, 0, 45, 30, -30, 60, -60, 15, -15]]
+        self.nb_ray = 5
+        self.rays = [Ray(self.x, self.y, angle + 90, 100) for angle in [0, 60, -60, 15, -15]]
         
         # Brain
-        self.brain = NeuralNetwork([self.nb_ray, self.nb_ray*2, 4])
+        self.brain = NeuralNetwork([self.nb_ray, 20, 4])
     
     def reset(self):
         self.x = 168

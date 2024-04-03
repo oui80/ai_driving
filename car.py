@@ -34,13 +34,14 @@ class CarController:
         # track
         self.nb_checkpoints = 0
         self.nb_laps = 1
+        self.crashed = False
 
         # Rays
         self.nb_ray = 5
         self.rays = [Ray(self.x, self.y, angle + 90, 100) for angle in [0, 60, -60, 15, -15]]
         
         # Brain
-        self.brain = NeuralNetwork([self.nb_ray, 20, 4])
+        self.brain = NeuralNetwork([self.nb_ray, 20,50,20, 4])
     
     def reset(self):
         self.x = 168
@@ -49,16 +50,17 @@ class CarController:
         self.angle = 0
         self.nb_checkpoints = 0
         self.nb_laps = 1
+        self.crashed = False
 
     def stop(self):
         self.speed = 0
     
-    def update(self,outer,inner):
+    def update(self,outer,inner,indice_max,screen):
         
         # rays
-        for ray in self.rays:
-            ray.reset_position(self.x,self.y)
-            ray.contact(-self.angle,outer,inner)
+        for i in range(len(self.rays)):
+            self.rays[i].reset_position(self.x,self.y)
+            self.rays[i].contact(-self.angle,outer,inner,indice_max,screen)
 
         offsets = []
         for ray in self.rays:

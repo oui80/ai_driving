@@ -13,33 +13,46 @@ class Ray:
         self.distance = 1
         self.angle = angle
         self.distance_max = distance_max
+        self.index_last_inter = 0
 
     def reset_position(self,x,y):
         self.x1 = x
         self.y1 = y
 
-    def contact(self, car_angle, polygon1,polygon2):
+    def contact(self, car_angle, polygon1,polygon2,indice_max,screen):
+
         self.x2 = self.x1 + self.distance_max * math.sin(math.radians(car_angle + self.angle))
         self.y2 = self.y1 + self.distance_max * math.cos(math.radians(car_angle + self.angle))
 
-        polygon = polygon1.difference(polygon2)
+        #  parcourt les segments du polygone 
+        # un segment est composé de deux points polygon1[i] et polygon1[i+1]
+        # dans un intervalle de 10 entre l'indice car_current_segment-5 et car_current_segment+5
+        # si il ya une intersection on update l'indice de la voiture 
 
-        t = int(1/(self.distance+0.1))+2
-        interpolated_point = interpolate_segment((self.x1,self.y1),(self.x2,self.y2), t)
+        n = 30
+        min = (self.index_last_inter - n//2 )%indice_max
 
-        for point in interpolated_point:
-            if (not Point(point).within(polygon)):
-                segment = LineString([(self.x1,self.y1),point])
-                intersection_point = segment.intersection(polygon)
-                if(not intersection_point.is_empty):
-                    if intersection_point.geom_type == 'LineString':
-                        if len(intersection_point.xy[0]) >= 2 :
-                            
-                            x2,y2 = intersection_point.xy
-                            self.x2, self.y2 = int(x2[1]), int(y2[1])
-                            self.distance = Point(self.x1, self.y1).distance(Point(self.x2, self.y2))/self.distance_max
+        for i in range(n):
+            x1,y1 = polygon1[(min + i )%indice_max]
+            x2,y2 = polygon1[(min + i + 1)%indice_max]
+            intersection = check_intersections(self.x1, self.y1, self.x2, self.y2, x1, y1, x2, y2)
+            if intersection:
+                self.x2, self.y2 = intersection[0]
+                self.distance = Point(self.x1, self.y1).distance(Point(self.x2, self.y2))/self.distance_max
+                self.index_last_inter = (min + i )%indice_max
+                return
+            
+        for i in range(n):
+            x1,y1 = polygon2[(min + i )%indice_max]
+            x2,y2 = polygon2[(min + i + 1)%indice_max]
+            intersection = check_intersections(self.x1, self.y1, self.x2, self.y2, x1, y1, x2, y2)
 
-
+            if intersection:
+                self.x2, self.y2 = intersection[0]
+                self.distance = Point(self.x1, self.y1).distance(Point(self.x2, self.y2))/self.distance_max
+                self.index_last_inter = (min + i )%indice_max
+                return
+        
     def draw(self,screen):
         pygame.draw.line(screen, (0,0,0), (self.x1, self.y1), (self.x2, self.y2), 2)
         point = (self.x2,self.y2)

@@ -5,6 +5,9 @@ from car import CarController
 from shapely.geometry import Polygon
 from shapely import speedups
 import pickle
+import copy
+import matplotlib.pyplot as plt
+
 
 # Initialisation de Pygame
 pygame.init()
@@ -14,7 +17,7 @@ clock = pygame.time.Clock()
 screen_width = 880
 screen_height = 880
 screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption("Car Drift Game")
+pygame.display.set_caption("Self dring car")
 font = pygame.font.SysFont(None, 24)
 
 WHITE = (255, 255, 255)
@@ -42,51 +45,47 @@ points2 = [(173, 136), (189, 134), (423, 121), (444, 122), (461, 128), (474, 133
 active_points = points1 
 add = False
 
+# plot
 
+plot = []
 
-# CRUD
+# Mémoire
 
-def save():
-    # Save the best car with pickle
-    with open("bestcar.txt", "wb") as f:
-        pickle.dump(bestcar.brain, f)
+mem = []
 
-    with open("bestcar_check.txt", "w") as f:
-        f.write(str(bestcar.nb_checkpoints*bestcar.nb_laps))
-        f.close()
-
-
-def load():
-    # Load the best car brain from the local storage
-    res = CarController("AI",(screen_width // 2, screen_height // 2), "car.png")
-    with open("bestcar.txt", "rb") as f:
-        res.brain = pickle.load(f)
-        f.close()
-        return res.brain
-    
-def load_check():
-    with open("bestcar_check.txt", "r") as f:
-        res = f.read()
-        f.close()
-        return int(res)
         
-def generate_cars(n):
+def generate_cars(n,type):
     
     for i in range(n):
-        cars.append(CarController("AI",(screen_width // 2, screen_height // 2), "car.png"))
+        cars.append(CarController(type,(screen_width // 2, screen_height // 2), "car.png"))
         cars[i].reset()
     return True
 
-
-
-#cars.append(CarController("Player",(screen_width // 2, screen_height // 2), "car.png"))
-
 # Boucle de jeu
 
-generate_cars(20)
-bestcar = cars[0]
+nb_cars = 60
 
-save()
+generate_cars(nb_cars,"AI")
+#generate_cars(1,"Player")
+
+
+# nb de voitures à garder en mémoire 
+mem_size = 7
+
+# (les mutations se ont sur tous les éléments de la mémoire)
+
+
+#save
+def save():
+    with open("bestcar.txt","wb") as f:
+        pickle.dump(bestcar.brain,f)
+
+# initilisation de la mémoire
+if (mem_size != 0):
+    for i in range(mem_size):
+        mem.append((cars[i].brain,cars[i].score))
+
+bestcar = cars[0]
 
 nb_frames = 0
 
@@ -100,93 +99,122 @@ while running:
     # Gestion des événements
     for event in pygame.event.get():
         if event.type == QUIT:
+            save()
             running = False
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            x, y = pygame.mouse.get_pos()
-            if (add):
-                active_points.append((x, y))
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_RETURN:
-                # Basculer entre les listes de points
-                if active_points is points1:
-                    active_points = points2
-                else:
-                    active_points = points1
-            elif event.key == pygame.K_n:
-                bestcar.brain = load()
-                bestcar.reset()
-                for car in cars:
-                    # copie le cerveau du meilleur mais sans aliasing
-                    car.brain = load()
-                    NeuralNetwork.mutate(car.brain,0.13)
-                    car.reset()
-            elif event.key == pygame.K_b:
-                save()
-            elif event.key == pygame.K_v:
-                bestcar.reset()
-                for car in cars:
-                    car.brain = NeuralNetwork([car.nb_ray, 20, 4])
-                    car.reset()
 
-    # si toutes les voitures sont crashées et que la voiture load à moins de checkpoints que la voiture bestcar
+    # si toutes les voitures sont crashées
     if all([car.crashed for car in cars]):
-        save()
-        bestcar.brain = load()
-        bestcar.reset()
-        bestcar.crashed = False
-        nb_frames = 0
+        
+        # sauvegarde les voitures dont le score est supérieur au score des voitures en mémoire
         for car in cars:
-            # copie le cerveau du meilleur mais sans aliasing
-            car.brain = load()
-            if load_check() < bestcar.nb_checkpoints*bestcar.nb_laps:
-                NeuralNetwork.mutate(car.brain,0.125)
+            for i in range(len(mem)):
+                if car.score > mem[i][1]:
+                    # Deep copy of the tuple
+                    mem[i] = copy.deepcopy((car.brain, car.score))
+                    break
+
+        
+        print(f"Scores : {[round(car.score,2) for car in cars]}")
+
+
+        # on répartit la mutation en fonction du scores en mémoire
+        # on fait la somme des scores de la memoire
+        total = 0
+        for i in range(len(mem)):
+            total += mem[i][1]
+        
+        # on fait un produit en croix pour avoir le nombre de voiture que l'on va muter avec une voiture de la mémoire
+        nb = []
+        for i in range(mem_size):
+            if (total== 0):
+                tot = 1
             else:
-                NeuralNetwork.mutate(car.brain,0.15)
-            car.reset()
-            car.crashed = False
+                tot = total
 
-                    
+            nb.append(int(mem[i][1]*nb_cars//tot))
 
+        i = 0
+        while (sum(nb) < nb_cars):
+            nb[i%nb_cars] += 1
+            i += 1
+            
+        print(f"nb : {nb, i}")
+
+        # nb correspond au pourcentage du brain qu'il faut prendre des meilleures voitures en mémoire pour une bonne mutation
+
+
+        # on fais des enfants à partir de la mémoire
+        for i in range(nb_cars):
+            cars[i].brain = copy.deepcopy(mem[i%mem_size][0])
+            NeuralNetwork.mutate2(cars[i].brain,0.25,0.25)
+        for car in cars:
+                car.reset()
+        
+        top = []
+        for j in range(mem_size):
+            #print(nb_cars/((nb[j]+1)*10))
+            top.append(mem[j][1])
+        
+        
+
+        plot.append(top)
+
+
+        nb_frames = 1
+                
 
     # Mise à jour des voitures
+            
+    liste = []
 
     for car in cars:
-        car.update(points1,points2,len(points1)-2,screen)
-        
-        if(car.nb_checkpoints*car.nb_laps > bestcar.nb_checkpoints*bestcar.nb_laps):
-            bestcar = car
-        car.draw(screen,(100,100,100))
-        
-        
-        # optimisation du parcourt des checkpoints
-        if car.nb_checkpoints > 3:
-            min = car.nb_checkpoints - 3
-        else:
-            min = 0
+        car.update(screen)
+        if (car.type):
 
-        if car.nb_checkpoints < len(points2)-4:
-            max = car.nb_checkpoints + 3
-        else:
-            max = len(points2)-1
+            
+            car.reward_function(nb_frames)
+            
+            if(car.score > bestcar.score):
+                bestcar = car
+            car.draw(screen,(100,100,100))
 
-        for i in range(min,max):
-            if(car.isbetween(points1[i][0],points1[i][1],points2[i][0],points2[i][1],300,i,len(points1)-2)):
-                pygame.draw.line(screen, VERT, points2[i], points1[i], 1)
+            # print du score
+            liste.append(car.score)
+            
+            
+            # optimisation du parcourt des checkpoints
+            if car.nb_checkpoints > 3:
+                min = car.nb_checkpoints - 3
+            else:
+                min = 0
 
-        if car.hasCrash(points1,points2):
-            car.stop()
+            if car.nb_checkpoints < len(points2)-4:
+                max = car.nb_checkpoints + 3
+            else:
+                max = len(points2)-1
 
-        # si ou bout de 100 frames la voiture n'a pas bougé
-        if nb_frames > 100 and car.speed < 1:
-            car.crashed = True
+            for i in range(min,max):
+                a = car.isbetween(points1[i][0],points1[i][1],points2[i][0],points2[i][1],300,i,len(points1)-2)
+                # if(a):
+                #     pygame.draw.line(screen, VERT, points2[i], points1[i], 1)
 
-        
+            if car.hasCrash(points1,points2):
+                car.stop()
+
+            # si ou bout de 50 frames la voiture n'a pas bougé
+            if nb_frames > 50 and car.speed < 1:
+                car.crashed = True
+
+    #print(f"scores : {liste}")
     
 
 
     # debug
     bestcar.draw(screen,BLUE)
     bestcar.draw_rays(screen)
+
+    score = font.render(f"Score : {bestcar.score}", True, BLACK)
+    screen.blit(score, (10, 10))
 
     fps_text = font.render(f"FPS: {int(clock.get_fps())}", True, BLACK)
     screen.blit(fps_text, (800, 10))
@@ -214,9 +242,9 @@ while running:
 
     pygame.display.flip()
     nb_frames = (nb_frames + 1)
-    clock.tick(500)  # Limite de 60 images par seconde
-
-print(len(points1))
+    clock.tick(60)  # Limite de 60 images par seconde
 
 pygame.quit()
 
+plt.plot(plot)
+plt.show()

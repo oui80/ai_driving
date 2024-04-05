@@ -2,7 +2,6 @@ from shapely.geometry import Point, LineString
 from shapely.strtree import STRtree
 import math
 import pygame
-from shapely import speedups
 BLUE = (0,0,255)
 class Ray:
     def __init__(self, x1, y1, angle, distance_max):
@@ -10,48 +9,33 @@ class Ray:
         self.y1 = y1
         self.x2 = 0
         self.y2 = 0
-        self.distance = 1
-        self.angle = angle
+        self.distance = 0
         self.distance_max = distance_max
-        self.index_last_inter = 0
+        self.angle = angle
 
     def reset_position(self,x,y):
         self.x1 = x
         self.y1 = y
 
-    def contact(self, car_angle, polygon1,polygon2,indice_max,screen):
+    def contact2(self, car_angle,screen):
+        dist = 0
+        self.x2 = self.x1
+        self.y2 = self.y1
 
-        self.x2 = self.x1 + self.distance_max * math.sin(math.radians(car_angle + self.angle))
-        self.y2 = self.y1 + self.distance_max * math.cos(math.radians(car_angle + self.angle))
-
-        #  parcourt les segments du polygone 
-        # un segment est composé de deux points polygon1[i] et polygon1[i+1]
-        # dans un intervalle de 10 entre l'indice car_current_segment-5 et car_current_segment+5
-        # si il ya une intersection on update l'indice de la voiture 
-
-        n = 30
-        min = (self.index_last_inter - n//2 )%indice_max
-
-        for i in range(n):
-            x1,y1 = polygon1[(min + i )%indice_max]
-            x2,y2 = polygon1[(min + i + 1)%indice_max]
-            intersection = check_intersections(self.x1, self.y1, self.x2, self.y2, x1, y1, x2, y2)
-            if intersection:
-                self.x2, self.y2 = intersection[0]
-                self.distance = Point(self.x1, self.y1).distance(Point(self.x2, self.y2))/self.distance_max
-                self.index_last_inter = (min + i )%indice_max
-                return
+        # tant qu'on ne touche pas un mur
+        # on augmente la distance
+        b = False
+        while not b and dist < self.distance_max:
+            dist += 1
+            self.x2 = int(self.x1 + dist * math.sin(math.radians(car_angle + self.angle)))
+            self.y2 = int(self.y1 + dist * math.cos(math.radians(car_angle + self.angle)))
+            a = screen.get_at((int(self.x2), int(self.y2))) 
+            b = a != (111,112,115,255) and a != (100,100,100)
+        
+        self.distance = distance(self.x1,self.y1,self.x2,self.y2)
             
-        for i in range(n):
-            x1,y1 = polygon2[(min + i )%indice_max]
-            x2,y2 = polygon2[(min + i + 1)%indice_max]
-            intersection = check_intersections(self.x1, self.y1, self.x2, self.y2, x1, y1, x2, y2)
-
-            if intersection:
-                self.x2, self.y2 = intersection[0]
-                self.distance = Point(self.x1, self.y1).distance(Point(self.x2, self.y2))/self.distance_max
-                self.index_last_inter = (min + i )%indice_max
-                return
+            
+            
         
     def draw(self,screen):
         pygame.draw.line(screen, (0,0,0), (self.x1, self.y1), (self.x2, self.y2), 2)
@@ -94,3 +78,7 @@ def interpolate_segment(p1, p2, num_points):
         interpolated_points.append(linear_interpolation(p1, p2, t))
     
     return interpolated_points
+
+
+def distance(x1,y1,x2,y2):
+    return math.sqrt((x2-x1)**2 + (y2-y1)**2)

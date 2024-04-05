@@ -20,13 +20,13 @@ class CarController:
         self.image = pygame.transform.scale(self.image, (self.width, self.height))
         
         # Setting
-        self.x = 168
+        self.x = 160
         self.y = 100
         self.speed = 0
         self.acceleration = 0.15
         self.break_speed = .4
-        self.max_speed = 12
-        self.steer_angle = 6
+        self.max_speed = 20
+        self.steer_angle = 7
         self.angle = 0
         self.frottement = 0.04
         self.mass = 20
@@ -38,59 +38,67 @@ class CarController:
 
         # Rays
         self.nb_ray = 5
-        self.rays = [Ray(self.x, self.y, angle + 90, 100) for angle in [0, 60, -60, 15, -15]]
+        self.rays = [Ray(self.x, self.y, angle + 90, 100) for angle in [0, 30, -30]]+[Ray(self.x, self.y, angle + 90, 55) for angle in [90,-90]]
+        #self.rays = [Ray(self.x, self.y, angle + 90, 200) for angle in [0]]
         
         # Brain
-        self.brain = NeuralNetwork([self.nb_ray, 20,50,20, 4])
+        self.brain = NeuralNetwork([self.nb_ray,10, 4])
+        self.score = 0
+        self.isChild = False
     
     def reset(self):
-        self.x = 168
+        self.x = 160
         self.y = 100
         self.speed = 0
         self.angle = 0
         self.nb_checkpoints = 0
         self.nb_laps = 1
         self.crashed = False
+        self.score = 0
 
     def stop(self):
         self.speed = 0
+        self.crashed = True
     
-    def update(self,outer,inner,indice_max,screen):
+    def update(self,screen):
         
-        # rays
-        for i in range(len(self.rays)):
-            self.rays[i].reset_position(self.x,self.y)
-            self.rays[i].contact(-self.angle,outer,inner,indice_max,screen)
+        # inputs
+        if (not self.crashed):
+            for i in range(len(self.rays)):
+                
+                self.rays[i].contact2(-self.angle,screen)
+                self.rays[i].reset_position(self.x,self.y)
 
-        offsets = []
-        for ray in self.rays:
-            offsets.append(ray.distance)
+            if (self.type):
+                offsets = []
+                for ray in self.rays:
+                    offsets.append(ray.distance)
 
-        outputs = self.brain.feed_forward(offsets,self.brain)        
+                outputs = self.brain.feed_forward(offsets,self.brain)        
 
-        # get the controls
-        keys = pygame.key.get_pressed()
+            # get the controls
+            keys = pygame.key.get_pressed()
 
-        controls = [0,0,0,0]
+            controls = [0,0,0,0]
 
-        if (self.type):
-            controls = outputs
-        else:
-            if keys[pygame.K_UP] or  keys[pygame.K_z]:
-                controls[0] = 1
+            if (self.type):
+                controls = outputs
+            else:
+                if keys[pygame.K_UP] or  keys[pygame.K_z]:
+                    controls[0] = 1
 
-            if keys[pygame.K_DOWN] or keys[pygame.K_s]:
-                controls[1] = 1
+                if keys[pygame.K_DOWN] or keys[pygame.K_s]:
+                    controls[1] = 1
+                
+                if keys[pygame.K_LEFT] or keys[pygame.K_q]:
+                    controls[2] = 1
+                
+                if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+                    controls[3] = 1
             
-            if keys[pygame.K_LEFT] or keys[pygame.K_q]:
-                controls[2] = 1
             
-            if keys[pygame.K_RIGHT] or keys[pygame.K_d]:
-                controls[3] = 1
-        
-        
-        # move the car
-        self.move(controls)
+            # move the car
+            self.move(controls)
 
         
 
@@ -158,9 +166,13 @@ class CarController:
     
     def draw(self,screen,color):
         pygame.draw.polygon(screen,color,car_to_Polygon(self.x,self.y,self.width,self.height,-self.angle))
-        # for ray in self.rays:
-        #     ray.draw(screen)
-    
+
+        # dessiner le score
+        # font = pygame.font.Font(None, 11)
+        # score = font.render(f"{self.score:.2f}", True, (0,0,0))
+        # screen.blit(score, (self.x, self.y))
+
+
     def draw_rays(self,screen):
         for ray in self.rays:
             ray.draw(screen)
@@ -172,6 +184,16 @@ class CarController:
         car = Polygon(car_to_Polygon(self.x,self.y,self.width,self.height,-self.angle))
 
         return not(car.intersects(p1) and not car.intersects(p2))
+
+    def reward_function(self,nb_frames):
+        self.score = (self.nb_checkpoints * self.nb_laps)
+
+        self.score += self.speed/100
+
+        if self.crashed :
+            self.score += -500 / nb_frames
+        
+        
 
 
 def car_to_Polygon(x, y, width, height, rotation):

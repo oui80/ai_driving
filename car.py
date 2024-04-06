@@ -157,7 +157,7 @@ class CarController:
 
         if (indice == self.nb_checkpoints):
             if (self.nb_checkpoints == indice_max):
-                self.nb_checkpoints = 0
+                self.nb_checkpoints = 1
                 self.nb_laps +=1
             else:
                 self.nb_checkpoints += 1
@@ -188,10 +188,13 @@ class CarController:
     def reward_function(self,nb_frames):
         self.score = (self.nb_checkpoints * self.nb_laps)
 
+        if self.nb_laps > 1:
+            self.score += 100
+
         self.score += self.speed/100
 
         if self.crashed :
-            self.score += -500 / nb_frames
+            self.score += -500 / nb_frames -2
         
         
 

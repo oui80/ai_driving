@@ -109,44 +109,20 @@ while running:
         for car in cars:
             for i in range(len(mem)):
                 if car.score > mem[i][1]:
-                    # Deep copy of the tuple
+                    # on décale la mémoire si nécessaire
+                    for j in range(mem_size-1,i,-1):
+                        mem[j] = copy.deepcopy(mem[j-1])
                     mem[i] = copy.deepcopy((car.brain, car.score))
                     break
-
-        
-        print(f"Scores : {[round(car.score,2) for car in cars]}")
-
-
-        # on répartit la mutation en fonction du scores en mémoire
-        # on fait la somme des scores de la memoire
-        total = 0
-        for i in range(len(mem)):
-            total += mem[i][1]
-        
-        # on fait un produit en croix pour avoir le nombre de voiture que l'on va muter avec une voiture de la mémoire
-        nb = []
-        for i in range(mem_size):
-            if (total== 0):
-                tot = 1
-            else:
-                tot = total
-
-            nb.append(int(mem[i][1]*nb_cars//tot))
-
-        i = 0
-        while (sum(nb) < nb_cars):
-            nb[i%nb_cars] += 1
-            i += 1
-            
-        print(f"nb : {nb, i}")
-
-        # nb correspond au pourcentage du brain qu'il faut prendre des meilleures voitures en mémoire pour une bonne mutation
+                # Deep copy of the tuple
+                
+                
 
 
         # on fais des enfants à partir de la mémoire
         for i in range(nb_cars):
             cars[i].brain = copy.deepcopy(mem[i%mem_size][0])
-            NeuralNetwork.mutate2(cars[i].brain,0.25,0.25)
+            NeuralNetwork.mutate2(cars[i].brain,0.25,0.3)
         for car in cars:
                 car.reset()
         
@@ -156,7 +132,7 @@ while running:
             top.append(mem[j][1])
         
         
-
+        print(top)
         plot.append(top)
 
 
@@ -195,6 +171,8 @@ while running:
 
             for i in range(min,max):
                 a = car.isbetween(points1[i][0],points1[i][1],points2[i][0],points2[i][1],300,i,len(points1)-2)
+                if a :
+                    break
                 # if(a):
                 #     pygame.draw.line(screen, VERT, points2[i], points1[i], 1)
 

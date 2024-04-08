@@ -30,7 +30,7 @@ class Ray:
             self.x2 = int(self.x1 + dist * math.sin(math.radians(car_angle + self.angle)))
             self.y2 = int(self.y1 + dist * math.cos(math.radians(car_angle + self.angle)))
             a = screen.get_at((int(self.x2), int(self.y2))) 
-            b = a != (111,112,115,255) and a != (100,100,100)
+            b = a != (111,112,115,255) and a != (100,100,100) and a != (200,0,0) and a != (0,200,0)
         
         self.distance = distance(self.x1,self.y1,self.x2,self.y2)
             

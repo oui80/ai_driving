@@ -17,7 +17,7 @@ clock = pygame.time.Clock()
 screen_width = 880
 screen_height = 880
 screen = pygame.display.set_mode((screen_width, screen_height))
-pygame.display.set_caption("Self dring car")
+pygame.display.set_caption("Self driving car")
 font = pygame.font.SysFont(None, 24)
 
 WHITE = (255, 255, 255)
@@ -48,6 +48,7 @@ add = False
 # plot
 
 plot = []
+plot1 = []
 
 # Mémoire
 
@@ -63,14 +64,18 @@ def generate_cars(n,type):
 
 # Boucle de jeu
 
-nb_cars = 60
+nb_cars = 40
+nb_cars_originales = 15
+nb_cars_perf = 5
 
 generate_cars(nb_cars,"AI")
+generate_cars(nb_cars_originales,"AI")
+generate_cars(nb_cars_perf,"AI")
 #generate_cars(1,"Player")
 
 
 # nb de voitures à garder en mémoire 
-mem_size = 7
+mem_size = 10
 
 # (les mutations se ont sur tous les éléments de la mémoire)
 
@@ -104,11 +109,13 @@ while running:
 
     # si toutes les voitures sont crashées
     if all([car.crashed for car in cars]):
-        
+        max = 0
         # sauvegarde les voitures dont le score est supérieur au score des voitures en mémoire
         for car in cars:
+            if max < car.score:
+                max = car.score
             for i in range(len(mem)):
-                if car.score > mem[i][1]:
+                if car.score >= mem[i][1]:
                     # on décale la mémoire si nécessaire
                     for j in range(mem_size-1,i,-1):
                         mem[j] = copy.deepcopy(mem[j-1])
@@ -116,15 +123,24 @@ while running:
                     break
                 # Deep copy of the tuple
                 
-                
+        plot1.append(max)
 
 
         # on fais des enfants à partir de la mémoire
         for i in range(nb_cars):
             cars[i].brain = copy.deepcopy(mem[i%mem_size][0])
-            NeuralNetwork.mutate2(cars[i].brain,0.25,0.3)
-        for car in cars:
-                car.reset()
+            NeuralNetwork.mutate2(cars[i].brain,0.18,0.22)
+
+        for i in range(nb_cars,nb_cars+nb_cars_originales):
+            cars[i].brain = copy.deepcopy(mem[i%mem_size][0])
+            NeuralNetwork.mutate2(cars[i].brain,0.6,0.47)
+
+        for i in range(nb_cars+nb_cars_originales,nb_cars+nb_cars_originales+nb_cars_perf):
+            cars[i].brain = copy.deepcopy(mem[0][0])
+            NeuralNetwork.mutate2(cars[i].brain,0.13,0.045)
+    
+        for i in range(nb_cars + nb_cars_originales + nb_cars_perf):
+                cars[i].reset()
         
         top = []
         for j in range(mem_size):
@@ -144,15 +160,19 @@ while running:
     liste = []
 
     for car in cars:
-        car.update(screen)
-        if (car.type):
+        
+        if (car.crashed == False):
+            
+            car.update(screen)
 
             
             car.reward_function(nb_frames)
             
             if(car.score > bestcar.score):
                 bestcar = car
-            car.draw(screen,(100,100,100))
+
+            
+            
 
             # print du score
             liste.append(car.score)
@@ -182,6 +202,15 @@ while running:
             # si ou bout de 50 frames la voiture n'a pas bougé
             if nb_frames > 50 and car.speed < 1:
                 car.crashed = True
+
+    for i in range(nb_cars):
+        cars[i].draw(screen,(100,100,100))
+
+    for i in range(nb_cars,nb_cars+nb_cars_originales):
+        cars[i].draw(screen,(0,200,0))
+
+    for i in range(nb_cars+nb_cars_originales,nb_cars+nb_cars_originales+nb_cars_perf):
+        cars[i].draw(screen,(200,0,0))
 
     #print(f"scores : {liste}")
     
@@ -219,10 +248,18 @@ while running:
     
 
     pygame.display.flip()
+
+
     nb_frames = (nb_frames + 1)
-    clock.tick(60)  # Limite de 60 images par seconde
+    clock.tick(30)  # Limite de 60 images par seconde
 
 pygame.quit()
 
+
+plt.plot(plot1)
+
+plt.show()
+
 plt.plot(plot)
 plt.show()
+

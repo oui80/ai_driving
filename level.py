@@ -51,25 +51,6 @@ class NeuralNetwork:
                     if random.random() < mutation_rate:
                         level.weights[i][j] += random.uniform(-amount, amount)
 
-    # un fonction make child qui prend deux parents et qui fait un enfant suivant un taux de mutation de chaque parent
-    def make_child(parent1,parent2,rate):
-        child = NeuralNetwork([len(parent1.levels[0].inputs),10,4])
-        for i in range(len(parent1.levels)):
-            for j in range(len(parent1.levels[i].biases)):
-                child.levels[i].biases[j] = lerp(
-                    parent1.levels[i].biases[j],
-                    parent2.levels[i].biases[j],
-                    rate
-                )
-            for j in range(len(parent1.levels[i].inputs)):  
-                for k in range(len(parent1.levels[i].outputs)):
-                    child.levels[i].weights[j][k] = lerp(
-                        parent1.levels[i].weights[j][k],
-                        parent2.levels[i].weights[j][k],
-                        rate
-                    )
-        return child
-
 
 class Level:
     def __init__(self,inputCount,outputCount):

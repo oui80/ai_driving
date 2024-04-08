@@ -29,7 +29,6 @@ class CarController:
         self.steer_angle = 7
         self.angle = 0
         self.frottement = 0.04
-        self.mass = 20
 
         # track
         self.nb_checkpoints = 0
@@ -158,7 +157,8 @@ class CarController:
         if (indice == self.nb_checkpoints):
             if (self.nb_checkpoints == indice_max):
                 self.nb_checkpoints = 1
-                self.nb_laps +=1
+                self.score += 100
+                self.crashed = True
             else:
                 self.nb_checkpoints += 1
 
@@ -188,13 +188,10 @@ class CarController:
     def reward_function(self,nb_frames):
         self.score = (self.nb_checkpoints * self.nb_laps)
 
-        if self.nb_laps > 1:
-            self.score += 100
 
-        self.score += self.speed/100
+        self.score += self.speed/50
 
-        if self.crashed :
-            self.score += -500 / nb_frames -2
+        self.score -= (nb_frames*nb_frames)/10000
         
         
 

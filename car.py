@@ -2,12 +2,11 @@ import pygame
 from pygame.locals import *
 import math
 from shapely.geometry import Polygon
-from level import NeuralNetwork
 from ray import Ray
 
 
 class CarController:
-    def __init__(self,type, position, image_path):
+    def __init__(self,type, position, image_path, net,index):
 
         # type
         self.type = type=="AI"
@@ -41,9 +40,10 @@ class CarController:
         #self.rays = [Ray(self.x, self.y, angle + 90, 200) for angle in [0]]
         
         # Brain
-        self.brain = NeuralNetwork([self.nb_ray,10, 4])
+        self.brain = net
+        self.index = index
         self.score = 0
-        self.isChild = False
+        
     
     def reset(self):
         self.x = 160
@@ -73,7 +73,8 @@ class CarController:
                 for ray in self.rays:
                     offsets.append(ray.distance)
 
-                outputs = self.brain.feed_forward(offsets,self.brain)        
+                outputs = self.brain.activate(offsets)
+                   
 
             # get the controls
             keys = pygame.key.get_pressed()
@@ -157,8 +158,8 @@ class CarController:
         if (indice == self.nb_checkpoints):
             if (self.nb_checkpoints == indice_max):
                 self.nb_checkpoints = 1
-                self.score += 100
-                self.crashed = True
+                self.score += 20
+                self.nb_laps += 1
             else:
                 self.nb_checkpoints += 1
 
@@ -185,14 +186,17 @@ class CarController:
 
         return not(car.intersects(p1) and not car.intersects(p2))
 
-    def reward_function(self,nb_frames):
+    def reward_function(self,genome,nb_frames):
+
         self.score = (self.nb_checkpoints * self.nb_laps)
 
 
         self.score += self.speed/50
 
-        self.score -= (nb_frames*nb_frames)/10000
+        self.score += nb_frames/1000 
         
+        genome.fitness = self.score
+            
         
 
 
